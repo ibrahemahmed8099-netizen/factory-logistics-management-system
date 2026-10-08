@@ -1,0 +1,17 @@
+{
+  "name": "factory-logistics-management-system",
+  "version": "1.0.0",
+  "description": "System for managing industrial logistics movement between factories, warehouses and transport shipments.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "logistics",
+    "factory",
+    "warehouse",
+    "shipment",
+    "inventory"
+  ],
+  "license": "MIT"
+}

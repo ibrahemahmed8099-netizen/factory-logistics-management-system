@@ -1,0 +1,207 @@
+async function requestJson(url, method = 'GET', body = null) {
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const errorJson = await response.json().catch(() => ({}));
+    throw new Error(errorJson.error || 'فشل في الطلب');
+  }
+
+  return response.json();
+}
+
+const state = {
+  dashboard: null,
+  factories: [],
+  shipments: [],
+  inventory: [],
+  orders: [],
+  alerts: []
+};
+
+const el = {
+  factoriesCount: document.getElementById('factoriesCount'),
+  shipmentsActive: document.getElementById('shipmentsActive'),
+  ordersPending: document.getElementById('ordersPending'),
+  inventoryAlertCount: document.getElementById('inventoryAlertCount'),
+  statusToday: document.getElementById('statusToday'),
+  shipmentsTable: document.getElementById('shipmentsTable'),
+  inventoryTable: document.getElementById('inventoryTable'),
+  ordersTable: document.getElementById('ordersTable'),
+  alertsList: document.getElementById('alertsList'),
+  refreshBtn: document.getElementById('refreshBtn')
+};
+
+function statusClass(status) {
+  if (status === 'نشط' || status === 'مكتمل') return 'status-active';
+  if (status === 'قيد التحضير' || status === 'قيد التتبع' || status === 'قيد التنفيذ') return 'status-pending';
+  return 'status-complete';
+}
+
+function severityClass(level) {
+  if (level === 'عالية') return 'severity-high';
+  if (level === 'متوسطة') return 'severity-medium';
+  return 'severity-low';
+}
+
+function renderBadge(value, type) {
+  const cls = type === 'status' ? statusClass(value) : severityClass(value);
+  return `<span class="badge ${cls}">${value}</span>`;
+}
+
+function renderShipments(items) {
+  if (!items.length) {
+    el.shipmentsTable.innerHTML = '<tr><td colspan="6">لا توجد شحنات</td></tr>';
+    return;
+  }
+
+  el.shipmentsTable.innerHTML = items.map(item => `
+    <tr>
+      <td>${item.id}</td>
+      <td>${item.route}</td>
+      <td>${item.vehicle}</td>
+      <td>${renderBadge(item.status, 'status')}</td>
+      <td>${item.eta}</td>
+      <td>
+        <div class="progress-bar"><span style="width: ${Math.min(100, Math.max(0, item.progress || 0))}%"></span></div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderInventory(items) {
+  if (!items.length) {
+    el.inventoryTable.innerHTML = '<tr><td colspan="5">لا توجد عناصر في المخزون</td></tr>';
+    return;
+  }
+
+  el.inventoryTable.innerHTML = items.map(item => `
+    <tr>
+      <td>${item.sku}</td>
+      <td>${item.name}</td>
+      <td>${item.warehouse}</td>
+      <td>${item.quantity}</td>
+      <td>${renderBadge(item.level, 'severity')}</td>
+    </tr>
+  `).join('');
+}
+
+function renderOrders(items) {
+  if (!items.length) {
+    el.ordersTable.innerHTML = '<tr><td colspan="5">لا توجد طلبات</td></tr>';
+    return;
+  }
+
+  el.ordersTable.innerHTML = items.map(item => `
+    <tr>
+      <td>${item.id}</td>
+      <td>${item.supplier}</td>
+      <td>${item.item}</td>
+      <td>${item.qty}</td>
+      <td>${renderBadge(item.status, 'status')}</td>
+    </tr>
+  `).join('');
+}
+
+function renderAlerts(items) {
+  if (!items.length) {
+    el.alertsList.innerHTML = '<div class="alert-item"><div class="alert-marker"></div><div class="alert-content"><strong>لا توجد تنبيهات</strong><small>كل العمليات تعمل بشكل طبيعي</small></div></div>';
+    return;
+  }
+
+  el.alertsList.innerHTML = items.map(item => `
+    <div class="alert-item">
+      <div class="alert-marker" style="background:${item.severity === 'عالية' ? '#ef4444' : item.severity === 'متوسطة' ? '#f59e0b' : '#3b82f6'}"></div>
+      <div class="alert-content">
+        <strong>${item.title}</strong>
+        <div>${renderBadge(item.severity, 'severity')}</div>
+        <small>${item.detail}</small>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadDashboard() {
+  const data = await requestJson('/api/dashboard');
+  state.dashboard = data;
+
+  el.factoriesCount.textContent = data.summary.totalFactories;
+  el.shipmentsActive.textContent = data.summary.activeShipments;
+  el.ordersPending.textContent = data.summary.pendingOrders;
+  el.inventoryAlertCount.textContent = data.summary.inventoryAlerts;
+  el.statusToday.textContent = data.summary.onTimeRate;
+}
+
+async function loadCollections() {
+  const [factories, shipments, inventory, orders, alerts] = await Promise.all([
+    requestJson('/api/factories'),
+    requestJson('/api/shipments'),
+    requestJson('/api/inventory'),
+    requestJson('/api/orders'),
+    requestJson('/api/alerts')
+  ]);
+
+  state.factories = factories;
+  state.shipments = shipments;
+  state.inventory = inventory;
+  state.orders = orders;
+  state.alerts = alerts;
+
+  renderShipments(shipments);
+  renderInventory(inventory);
+  renderOrders(orders);
+  renderAlerts(alerts);
+}
+
+async function refreshAll() {
+  try {
+    await loadDashboard();
+    await loadCollections();
+  } catch (error) {
+    alert(error.message || 'حدث خطأ أثناء تحديث البيانات');
+  }
+}
+
+document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+
+document.getElementById('factoryForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const formData = Object.fromEntries(new FormData(form).entries());
+
+  try {
+    await requestJson('/api/factories', 'POST', formData);
+    form.reset();
+    await refreshAll();
+  } catch (error) {
+    alert(error.message || 'فشل في حفظ المصنع');
+  }
+});
+
+document.getElementById('shipmentForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const formData = Object.fromEntries(new FormData(form).entries());
+
+  try {
+    await requestJson('/api/shipments', 'POST', {
+      ...formData,
+      progress: Number(formData.progress || 0)
+    });
+    form.reset();
+    await refreshAll();
+  } catch (error) {
+    alert(error.message || 'فشل في حفظ الشحنة');
+  }
+});
+
+refreshAll();

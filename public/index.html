@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>نظام إدارة الحركة اللوجستية للمصانع</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">F</span>
+          <div>
+            <h1>LogiFlow</h1>
+            <p>إدارة الحركة اللوجستية</p>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <a href="#overview" class="active">لوحة التحكم</a>
+          <a href="#shipments">الشحنات</a>
+          <a href="#inventory">المخزون</a>
+          <a href="#orders">الطلبات</a>
+          <a href="#alerts">التنبيهات</a>
+        </nav>
+
+        <div class="mini-card">
+          <span class="label">الحالة اليوم</span>
+          <strong id="statusToday">جيد</strong>
+          <small>معدل الالتزام 94%</small>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">لوحة القيادة</p>
+            <h2>نظام إدارة الحركة اللوجستية للمصانع</h2>
+          </div>
+          <button class="primary-btn" id="refreshBtn">تحديث البيانات</button>
+        </header>
+
+        <section id="overview" class="grid stats-grid">
+          <article class="stat-card accent-blue">
+            <span>إجمالي المصانع</span>
+            <strong id="factoriesCount">0</strong>
+            <small>مواقع التشغيل</small>
+          </article>
+          <article class="stat-card accent-green">
+            <span>الشحنات النشطة</span>
+            <strong id="shipmentsActive">0</strong>
+            <small>خلال اليوم</small>
+          </article>
+          <article class="stat-card accent-orange">
+            <span>الطلبات المعلقة</span>
+            <strong id="ordersPending">0</strong>
+            <small>تحتاج متابعة</small>
+          </article>
+          <article class="stat-card accent-red">
+            <span>تنبيهات المخزون</span>
+            <strong id="inventoryAlertCount">0</strong>
+            <small>تحتاج إعادة تعبئة</small>
+          </article>
+        </section>
+
+        <section class="panel two-columns">
+          <div class="panel-box">
+            <div class="section-title">
+              <h3>إضافة مصنع</h3>
+            </div>
+            <form id="factoryForm" class="stack-form">
+              <input type="text" name="name" placeholder="اسم المصنع" required />
+              <input type="text" name="city" placeholder="المدينة" required />
+              <input type="text" name="manager" placeholder="اسم المدير" required />
+              <select name="status">
+                <option value="نشط">نشط</option>
+                <option value="معلق">معلق</option>
+                <option value="متوقف">متوقف</option>
+              </select>
+              <button type="submit" class="primary-btn">حفظ المصنع</button>
+            </form>
+          </div>
+
+          <div class="panel-box">
+            <div class="section-title">
+              <h3>إضافة شحنة</h3>
+            </div>
+            <form id="shipmentForm" class="stack-form">
+              <input type="text" name="route" placeholder="المسار مثال: الرياض → جدة" required />
+              <input type="text" name="vehicle" placeholder="نوع المركبة" required />
+              <input type="text" name="eta" placeholder="وقت الوصول" required />
+              <select name="status">
+                <option value="قيد التحضير">قيد التحضير</option>
+                <option value="قيد التتبع">قيد التتبع</option>
+                <option value="مكتمل">مكتمل</option>
+              </select>
+              <input type="number" name="progress" min="0" max="100" value="20" required />
+              <button type="submit" class="primary-btn">حفظ الشحنة</button>
+            </form>
+          </div>
+        </section>
+
+        <section id="shipments" class="panel">
+          <div class="section-title">
+            <h3>الشحنات</h3>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>رقم الشحنة</th>
+                  <th>المسار</th>
+                  <th>المركبة</th>
+                  <th>الحالة</th>
+                  <th>الوقت المتوقع</th>
+                  <th>التقدم</th>
+                </tr>
+              </thead>
+              <tbody id="shipmentsTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel two-columns">
+          <div id="inventory" class="panel-box">
+            <div class="section-title">
+              <h3>المخزون</h3>
+            </div>
+            <div class="table-wrap compact-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>العنصر</th>
+                    <th>المستودع</th>
+                    <th>الكمية</th>
+                    <th>المستوى</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTable"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="orders" class="panel-box">
+            <div class="section-title">
+              <h3>الطلبات</h3>
+            </div>
+            <div class="table-wrap compact-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>رقم الطلب</th>
+                    <th>المورد</th>
+                    <th>العنصر</th>
+                    <th>الكمية</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="alerts" class="panel">
+          <div class="section-title">
+            <h3>التنبيهات</h3>
+          </div>
+          <div id="alertsList" class="alerts-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
